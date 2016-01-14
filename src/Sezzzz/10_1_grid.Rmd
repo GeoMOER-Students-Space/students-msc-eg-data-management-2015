@@ -1,0 +1,211 @@
+---
+title: "How to: Visualisieren von Vektor-Daten über einem Raster-Luftbild"
+author: "Schoene"
+
+---
+
+
+
+```{r, echo = FALSE}
+setwd("D:/BEN/Bahn/10_1")
+```
+
+Im Folgenden How-to soll anhand einer Vegetationsaufnahme auf der Insel Fogo gezeigt werden, wie sich in R Vektor-Daten und Landsat-Szenen visualisieren lassen.
+
+Die Funktion soll den Namen der Landsat-Szene, der Vektor-Datei und den gewünschten Spaltennamen erfordern und weiterhin die Option bieten die Farbgebung anzupassen. Über Y/Xgrid.line besteht die Möglichkeit die Anzahl der jeweiligen Gitternetzlinien des Koordinatenrahmens anzupassen:
+
+```{r,eval = FALSE}
+vectoronraster <- function(raster,vector,col.name,Y.gridline, X.gridline,colorraster=gray.colors,
+                           colorvector = "Greens" ) {
+```
+
+Folgende R-Bibliotheken sind zu laden:
+
+```{r, eval = FALSE}
+library("raster")
+library("rgdal")
+library("lattice")
+library("RColorBrewer")
+library("latticeExtra")
+library("data.table")
+```
+
+Das Raster wird geladen und die Kontrast-Schärfung durch Quartil-Bildung vorgenommen, weiterhin wird der Koordinaten-Rahmen festgelegt:
+
+```{r, eval = FALSE}
+rasterin <- raster(raster)
+
+color.sheme <- colorraster(256)
+
+breaks <- quantile(rasterin, seq(0.0, 1.0, length.out = 256))
+
+yat = seq(extent(rasterin)@ymin, 
+          extent(rasterin)@ymax, length.out = Ygrid.line)
+xat = seq(extent(rasterin)@xmin, 
+          extent(rasterin)@xmax, length.out = Xgrid.line)
+```
+
+Nun wird die Vektor-Datei als .shp eingelesen und in die Daten im Referenzsystem der Raster-Datei projiziert. Die Klassifizierung der Vektor-Daten mit dem cut-Befehl macht einen umständlichen Zugriff auf den Namen der Attribut-Tabelle notwendig. Die Vektor-Daten sollen immer in 5 Klassen eingeteilt werden. Schließlich werden die Farben mit dem colorbrewer erzeugt.
+
+```{r, eval = FALSE}
+vectorin <- readOGR(vector, layer = "data_2014_subset1")
+
+vector_utm <- spTransform(vectorin, CRS(projection(rasterin)))
+
+x<-attr(vector_utm,"data")
+y<-x[col.name]
+a<-y[,col.name]
+
+vector_classes <- cut(a, seq(min(y),max(y), by = max(y)/5))
+
+vector_colors <- colorRampPalette(brewer.pal(5,colorvector))(5)
+```
+
+Als nächstes wird das Luftbild geplottet und die direkt die Legende für die klassifizierten Vektor-Daten eingefügt.
+
+```{r, eval = FALSE}
+plt <- spplot(rasterin, col.regions = color.sheme, at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+```
+
+Die Darstellung der Vektor-Daten wird vorbereitet.
+
+```{r, eval = FALSE}
+orl <- spplot(vector_utm, zcol = col.name, col.regions = vector_colors, 
+              cuts = seq(min(y),max(y), 
+                         by = max(y/5)))
+```
+
+Schließlich werden beide Layer noch zusammengefügt:
+
+```{r, eval = FALSE}
+plt + as.layer(orl)}
+```
+
+Nun kann die Funktion angewendet werden:
+
+
+```{r, echo=FALSE}
+vectoronraster <- function(raster,vector,col.name,Ygrid.line, Xgrid.line,colorraster=gray.colors,
+                           colorvector = "Greens") {
+library("raster")
+library("rgdal")
+library("lattice")
+library("RColorBrewer")
+library("latticeExtra")
+library("data.table")
+  
+rasterin <- raster(raster)
+
+color.sheme <- colorraster(256)
+
+breaks <- quantile(rasterin, seq(0.0, 1.0, length.out = 256))
+
+yat = seq(extent(rasterin)@ymin, 
+          extent(rasterin)@ymax, length.out = Ygrid.line)
+xat = seq(extent(rasterin)@xmin, 
+          extent(rasterin)@xmax, length.out = Xgrid.line)
+
+vectorin <- readOGR(vector, layer = "data_2014_subset1")
+
+vector_utm <- spTransform(vectorin, CRS(projection(rasterin)))
+
+x<-attr(vector_utm,"data")
+y<-x[col.name]
+a<-y[,col.name]
+
+vector_classes <- cut(a, seq(min(y),max(y), by = max(y)/5))
+
+vector_colors <- colorRampPalette(brewer.pal(5,colorvector))(5)
+
+plt <- spplot(rasterin, col.regions = color.sheme, at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+
+orl <- spplot(vector_utm, zcol = col.name, col.regions = vector_colors, 
+              cuts = seq(min(y),max(y), 
+                         by = max(y/5)))
+plt + as.layer(orl)}
+
+```
+
+```{r, echo = FALSE,,  warning=FALSE,  message=FALSE}
+vectoronraster("LC82100502014328LGN00_B3.tif","data_2014_subset1.shp", "NAT",5,6)
+```
+
+Und hier nochmal der gesamte Code der Funktion:
+
+
+```{r,eval = FALSE}
+vectoronraster <- function(raster,vector,col.name,Ygrid.line, Xgrid.line,colorraster=gray.colors,
+                           colorvector = "Greens") {
+
+library("raster")
+library("rgdal")
+library("lattice")
+library("RColorBrewer")
+library("latticeExtra")
+library("data.table")
+
+rasterin <- raster(raster)
+
+color.sheme <- colorraster(256)
+
+breaks <- quantile(rasterin, seq(0.0, 1.0, length.out = 256))
+
+yat = seq(extent(rasterin)@ymin, 
+          extent(rasterin)@ymax, length.out = Ygrid.line)
+xat = seq(extent(rasterin)@xmin, 
+          extent(rasterin)@xmax, length.out = Xgrid.line)
+
+
+vectorin <- readOGR(vector, layer = "data_2014_subset1")
+
+vector_utm <- spTransform(vectorin, CRS(projection(rasterin)))
+
+x<-attr(vector_utm,"data")
+y<-x[col.name]
+a<-y[,col.name]
+
+vector_classes <- cut(a, seq(min(y),max(y), by = max(y)/5))
+
+vector_colors <- colorRampPalette(brewer.pal(5,colorvector))(5)
+
+plt <- spplot(rasterin, col.regions = color.sheme, at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+
+orl <- spplot(vector_utm, zcol = col.name, col.regions = vector_colors, 
+              cuts = seq(min(y),max(y), 
+                         by = max(y/5)))
+
+
+
+plt + as.layer(orl)}
+
+```
+
+
+
