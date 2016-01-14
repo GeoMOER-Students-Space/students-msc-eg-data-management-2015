@@ -20,7 +20,7 @@ vector <- readOGR("D:\\Studium (EnvGEo)\\Erstes_Semester\\Data_Management\\Datas
 ##Function
 The final function is of this structure: 
 ```{r, eval=F}
-custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens")
+custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens", grid_lines = 5)
 ```
 It takes as parameters the raster object `raster`, the vector object `vector` and some configuration parameters:
   + `v.attr` - The attribute of the vector used for classification
@@ -46,9 +46,9 @@ Breaks based on the standart deviation are computed to be used for a contrast st
 The plot features a coordinate grid. The equally spaced steps are created like this:
 ```{r, eval=F}
   yat = seq(extent(raster)@ymin, 
-            extent(raster)@ymax, length.out = 5)
+            extent(raster)@ymax, length.out = grid_lines)
   xat = seq(extent(raster)@xmin, 
-            extent(raster)@xmax, length.out = 5)
+            extent(raster)@xmax, length.out = grid_lines)
 
 ```
 Variables for the vector classification are established. This includes classes and colors:
@@ -85,7 +85,7 @@ Both plot objects are combined and the plot is created:
 ##Final Result
 All sections are now combined and put into the framework of the funtion:
 ```{r, echo=T}
-custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens"){
+custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens", grid_lines = 5){
  
    if (projection(raster) != projection(vector)) {
     vector <- spTransform(vector, CRS(projection(raster)))
@@ -97,9 +97,9 @@ custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens"){
   breaks <- seq(min, max, length.out = 256)
   
   yat = seq(extent(raster)@ymin, 
-            extent(raster)@ymax, length.out = 5)
+            extent(raster)@ymax, length.out = grid_lines)
   xat = seq(extent(raster)@xmin, 
-            extent(raster)@xmax, length.out = 5)
+            extent(raster)@xmax, length.out = grid_lines)
   
   vector_classes <- cut(vector@data[,colnames(vector@data) == v.attr], v.breaks)
   vector_colors <- colorRampPalette(brewer.pal(6,v.color))(6)
@@ -125,6 +125,6 @@ custom_map <- function(raster, vector, v.attr, v.breaks, v.color="Greens"){
 
 The function is called with valid parameter values and the plot gets created:
 ```{r, echo=T}
-custom_map(raster = raster, vector = vector, v.attr = "NAT", v.breaks = c(0, 20, 40, 60, 80, 100, 120), v.color="Reds")
+custom_map(raster = raster, vector = vector, v.attr = "NAT", v.breaks = c(0, 20, 40, 60, 80, 100, 120), v.color="Reds", grid_lines = 8)
 ```
 
