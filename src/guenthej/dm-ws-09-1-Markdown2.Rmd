@@ -159,5 +159,5 @@ mapplot <- function(raster, vectororigin, vectorclasses=6, gridticks=5){
 ```
 ```{r, echo=T}
 #Aufrufen der Funktion
-mapplot(band3,surveydata, vectorclasses = 3, gridticks = 6)
+mapplot(band3,surveydata, vectorclasses = 3, gridticks = 9)
 ```
