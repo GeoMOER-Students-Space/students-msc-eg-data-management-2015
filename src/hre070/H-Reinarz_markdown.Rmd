@@ -26,6 +26,7 @@ It takes as parameters the raster object `raster`, the vector object `vector` an
   + `v.attr` - The attribute of the vector used for classification
   + `v.breaks` - A vector containing the break values of the classes
   + `v.color` - The color of the vector visualization (default = "Greens")
+  + `grid_lines` - The number of lines that is added to each axis forming the coordinate grid (default = 5)
   
 ###Code sections
 At first, the projection of the two inputs has to be equal. Therefore, the projection of the vector data is adapted if needed:
