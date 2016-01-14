@@ -1,0 +1,74 @@
+
+**How to write a function that visualizes a spatial point vector attribute over a contrast stretched raster image?**
+
+
+```{r, message=FALSE, warning=FALSE}
+library(rgdal)
+library(raster)
+library(lattice)
+library(latticeExtra)
+library(RColorBrewer)
+```
+Laden der benötigten Pakete 
+
+```{r}
+plot_vec_grd <- function(raster, vector_utm,vec_attr, vec_col="Greens"){
+
+#Festlegen der Abstände für die Kontraststreckung des Rasters  
+min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
+max <- mean(getValues(raster)) + sd(getValues(raster))
+breaks <- seq(min, max, length.out = 256)
+
+#Umprojizierung der Vektor-Datei in das CRS des Rasters und festelgen der Legende-Klassen sowie Farben
+vector_utm<- spTransform(vector_utm, CRS(projection(raster)))
+vector_classes <- cut(vector_utm@data$COVRG, c(0, 20, 40, 60, 80, 100, 120))
+vector_colors <- colorRampPalette(brewer.pal(6,vec_col))(6)
+
+#Generierung der Ticks für die Koordinatenlinien
+yat = seq(extent(raster)@ymin, 
+          extent(raster)@ymax, length.out = 5)
+xat = seq(extent(raster)@xmin, 
+          extent(raster)@xmax, length.out = 5)
+
+#Generierung des Raster-Plots mit Koordinatenlinien und Legende
+plt <- spplot(raster, col.regions = gray.colors(256), at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+
+#Generierung des Vektor-Plots 
+orl <- spplot(vector_utm, zcol = vec_attr, col.regions = vector_colors, 
+              cuts = c(0, 20, 40, 60, 80, 100, 120))
+
+#Rückgabe des Gesamtplots
+return(plt + as.layer(orl))
+}
+```
+
+Die Funktion `plot_vec_grd()` wird mit den Variablen: Rasterdatei, Vektordatei, Vektorattribut und Plotfarbe des Vektors erstellt. 
+Im ersten Block werden die Abstände für die Kontraststreckung aufgrund der Standardabweichung des Rasters erstellt. Im nächsten Block wird die Vektor-Datei in das CRS des Rasters umprojiziert und Legende-Klassen sowie Farben festgelegt. Darufhin werden die Ticks für die Koorninatenlinen aufgrund der Raster-Ausdehnung erstellt. 
+In der `spplot()` Funktion wird das Raster zusammen mit Farb-, Legenden-, und Koordinatenlinienparametern übergeben. Für den Vektor wird dies ebenfalls getan. 
+Beide Plots werden in Variablen gespeichert. Der Vektor wird mit der Funktion `as.layer()` als zusätzliche Ebene definiert und mit dem Raster an die Funktion zurückgegeben. 
+
+
+Daten zum Aufruf der Funktion
+```{r,message=FALSE, warning=FALSE, verbose = FALSE}
+setwd("C:\\Users\\Luise\\Documents\\Universit�t\\Data Management\\DM\\Daten\\Datensaetze")
+raster <- raster("LC82100502014328LGN00_B3.tif")
+vector_utm<-readOGR(".","data_2014_subset1", verbose = FALSE)
+```
+
+Funktionsaufruf
+```{r}
+plot_vec_grd(raster, vector_utm,"COVRG")
+
+```
+
+
+
