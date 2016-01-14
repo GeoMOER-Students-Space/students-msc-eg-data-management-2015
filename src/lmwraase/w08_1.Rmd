@@ -12,7 +12,7 @@ library(RColorBrewer)
 Laden der benötigten Pakete 
 
 ```{r}
-plot_vec_grd <- function(raster, vector_utm,vec_attr, vec_col="Greens"){
+plot_vec_grd <- function(raster, vector_utm,vec_attr, vec_col="Greens", ticks= 8){
 
 #Festlegen der Abstände für die Kontraststreckung des Rasters  
 min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
@@ -26,9 +26,9 @@ vector_colors <- colorRampPalette(brewer.pal(6,vec_col))(6)
 
 #Generierung der Ticks für die Koordinatenlinien
 yat = seq(extent(raster)@ymin, 
-          extent(raster)@ymax, length.out = 5)
+          extent(raster)@ymax, length.out = ticks)
 xat = seq(extent(raster)@xmin, 
-          extent(raster)@xmax, length.out = 5)
+          extent(raster)@xmax, length.out = ticks)
 
 #Generierung des Raster-Plots mit Koordinatenlinien und Legende
 plt <- spplot(raster, col.regions = gray.colors(256), at = breaks,
