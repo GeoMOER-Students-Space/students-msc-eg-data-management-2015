@@ -19,9 +19,9 @@ library(latticeExtra)
 Anschlieﬂend werden die Datens‰tze, mit denen die Funktion sp‰ter ausprobiert werden soll in die Umgebung geladen und als Variablen abgespeichert. 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 #Rasterobjekt
-band3 <- raster("D:/Dropbox/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_landsat_2014-11-24/LC82100502014328LGN00_B3.tif")
+band3 <- raster("C:/Users/Jannik/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_landsat_2014-11-24/LC82100502014328LGN00_B3.tif")
 #Vektorobjekt
-surveydata <- readOGR("D:/Dropbox/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_field_survey_2014/data_2014_subset1.shp", layer = "data_2014_subset1")
+surveydata <- readOGR("C:/Users/Jannik/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_field_survey_2014/data_2014_subset1.shp", layer = "data_2014_subset1")
 ```
 
 ##Grundger¸st der Funktion
@@ -155,6 +155,9 @@ mapplot <- function(raster, vectororigin, vectorclasses=6, gridticks=5){
   
   plt + as.layer(orl)
 }
+
+```
+```{r, echo=T}
 #Aufrufen der Funktion
 mapplot(band3,surveydata, vectorclasses = 3, gridticks = 6)
 ```
