@@ -49,6 +49,8 @@ breaks <- seq(min, max, length.out = 256)
 
 
 ```
+### Create gridlines ###
+To create gridlines you have to define yat and xat as a seqence of the hole extent of the raster. The length.out term defines the number of gridlines (in this case 5) you wish to use. Later you can use xat and yat to integrate the grindlines in the plot via the panel.abline function and to add the scale via the scale function.
 
 ```{r}
 yat = seq(extent(raster)@ymin, 
