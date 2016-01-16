@@ -1,0 +1,163 @@
+---
+title: "Die Darstellung von Raster- und Vektorobjekten in einer Karte mittels einer Funktion in R"
+output: html_document
+---
+
+In diesem Tutorial soll gezeigt werden, wie man eine kartenähnliche Abbildung in R mittels einer Funktion erstellt. Dabei soll einem Rasterobjekt eine Kontraststreckung und ein Koordinatensystem hinzugefügt werden, um es anschließend mit einem Vektorobjekt zu kombinieren. Beide sollen ihre eigene Legende haben. Der Funktion sollen die beiden Objekte übergeben werden. Zudem soll man definieren können wie die Werte des Vektorobjektes klassifiziert werden und in welcher Auflösung das Koordinatengitter erstellt wird.
+
+Für das Beispiel sollen als Rasterobjekt Band 3 (Grün) eines Landsatbilds dienen. Als Vektorobjekt dient ein Punkt-Shapefile mit den Werten der Spalte namens "NAT"
+
+## Setup
+Für dieses Tutorial werden die Pakete `latticeExtra`, `sp`, `rgdal`, `raster` benötigt, welche im ersten Schritt eingelesen werden.
+
+```{r, message=FALSE, warning=FALSE}
+library(raster)
+library(sp)
+library(rgdal)
+library(latticeExtra)
+```
+Anschließend werden die Datensätze, mit denen die Funktion später ausprobiert werden soll in die Umgebung geladen und als Variablen abgespeichert. 
+```{r, message=FALSE, warning=FALSE, results='hide'}
+#Rasterobjekt
+band3 <- raster("C:/Users/Jannik/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_landsat_2014-11-24/LC82100502014328LGN00_B3.tif")
+#Vektorobjekt
+surveydata <- readOGR("C:/Users/Jannik/Dropbox/Marburg/Datamanagement/Projektordner/Datasets/GIS/fogo_field_survey_2014/data_2014_subset1.shp", layer = "data_2014_subset1")
+```
+
+##Grundgerüst der Funktion
+Widmen wir uns zuerst dem Grundgerüst der Funktion. Der Funktion werden 4 Variablen übergeben. Die Variable `raster` wird unser Rasterobjekt enthalten. Die Variable `vectororigin` unser Vektorobjekt. Die Klassifizierung des Vektors erfolgt mittels `vectorclasses`, welches die Werte standardmäßig in 6 Klassen einteilt. Mit `gridticks` wird das Koordinatengitter in 5er Abschnitten gezeichnet.
+```{r, eval=F}
+mapplot <- function(raster, vectororigin, vectorclasses=6, gridticks=5){}
+```
+Es ist wichtig, dass am Ende beide Objekte in der gleichen Projektion vorliegen. Daher wird das Vektorobjekt in die Projektion des Rasterobjekts transformiert. Da dies nur notwendig ist, wenn die Objekte in unterschiedlichen Projektionen vorliegen, wird eine `if`-Abfrage eingebaut, welche nur dann eine Transformation ausführt, wenn beide Objekte in unterschiedlichen Koordinatensystemen vorliegen
+*Hinweis: Es ist stets sinnvoller das Vektorobjekt anstelle des Rasterobjektes zu transformieren, da es bei letzterem zu Datenverlust kommen kann.*
+```{r, eval=F}
+ CRS_check <- as.character(crs(vectororigin)) == as.character(crs(raster))
+  if (CRS_check == FALSE){
+    vector <- spTransform(vectororigin, CRS(projection(raster)))
+  }
+  else{
+    vector <- vectororigin
+  }
+```
+
+## Bearbeiten des Rasterobjektes
+Widmen wir uns zuerst der Bearbeitung des Rasterobjektes, da dieses in unserer finalen Abbildung die unterste Ebene und damit den Hintergrund darstellt. 
+
+### Kontraststreckung
+Das Rasterobjekt soll eine lineare Kontraststreckung erhalten.
+Um den Kontrast linear zu strecken werden zuerst min- und max-Werte definiert, welche den Wertebereich der Graustufen repräsentieren sollen. Um den Minimalwert zu ermitteln wird die Standardabweichung der Werte von Band 3 von dem Mittelwert der Werte von Band 3 abgezogen. Um zu verhindern, dass es zu einem negativen Wert kommt, wird das Ergebnis in einen Vektor, welcher an zweiter Position 0 hat geschrieben. Der Minimalwert soll das Maximum dieses Vektors sein: Also entweder das Ergebnis der Subtraktion oder, falls diese negativ ist, 0.
+```{r, eval=F}
+min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
+```
+Der Maximumwert ergibt sich aus der Addition des Mittelwertes der Werte von Band 3 und der Standardabweichung der Werte von Band 3
+```{r, eval=F}
+max <- mean(getValues(raster)) + sd(getValues(raster))
+```
+Anschließend werden die Breaks für die Kontraststreckung bzw die Skala erzeugt.
+```{r, eval=F}
+breaks <- seq(min, max, length.out = 256)
+```
+
+
+### Koordinatensystem
+Als nächstes soll ein Koordinatengitter erzeugt werden. An diesem sollen die Hoch- und Rechtswerte ablesbar sein. Zuerst wird dazu definiert in welchen Abständen die Koordinaten angezeigt werden sollen. Hierzu wird eine Sequenz erzeugt, welche sich vom minimalen y-Wert bis zum maximalen y-Wert der Ausdehnung des Rasters erstreckt (das gleiche für die x-Achse). Diese Sequenz soll anhand der übergebenen Variable `gridticks` eingeteilt werden. Die Koordinaten bzw. Linien werden standardmäßig in 5er Schritten erzeugt.
+```{r, eval=F}
+yat = seq(extent(raster)@ymin, 
+          extent(raster)@ymax, length.out = gridticks)
+xat = seq(extent(raster)@xmin, 
+          extent(raster)@xmax, length.out = gridticks)
+```
+Um das Koordinatengitter nun auf das Rasterobjekt anzuwenden muss es als Panel hinzugefügt werden. Mithilfe von `panel` lassen sich mehrere Plots miteinander kombinieren. Hierzu wird innerhalb des spplot-Befehls eine panel-Funktion definiert. Diese besitzt als Argumente `(...)`, was bedeutet, dass sie die gleichen Eigenschaften wie das Objekt, dem sie hinzugefügt werden soll annimmt. Das bedeutet z.B., dass das Panel die gleiche Ausdehnung wie das Rasterobjekt besitzt. Mit `panel.levelplot` wird das Koordinatengitter gezeichnet. Mit `panel.abline` werden die Gitterlinien erstellt. Die Attribute `h` und `v` stehen dabei für die horizontalen und vertikalen Linien, welche in Form der Sequenz `yat` und `xat` erzeugt werden. Der Rest der Funktion bezieht sich auf die Darstellung der Linien (Farbe, Breite, usw.). Unter `scales` des spplot-Befehls wird die Beschriftung anhand der oben erzeugten Variablen erzeugt.
+```{r, eval=F}
+spplot(raster, col.regions = gray.colors(256), at = breaks,
+       panel = function(...){
+         panel.levelplot(...)
+         panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+         },
+       scales = list(x = list(at = xat),
+                     y = list(at = yat)))
+```
+
+## Bearbeiten des Vektorobjektes
+Widmen wir uns nun dem Vektorobjekt. Das Ziel ist es, dass das Vektorobjekt als Layer über dem Rasterobjekt dargestellt wird und zudem eine eigene Legende besitzt. 
+
+### Klassifizierung der Werte und Farben
+Zunächst werden die Werte der Spalte `NAT` in die Anzahl der Klassen eingeteilt, welche bei `vectorclasses` definiert wurde. Der Wertebereich der Klassifizierung liegt dabei zwischen 0 und dem Maximum von `NAT`.
+```{r, eval=F}
+vector_classes <- cut(vector@data$NAT, c(seq(0,max(vector@data$NAT), by=max(vector@data$NAT)/vectorclasses)))
+```
+Anschließend wird eine geeignete Farbpalette erstellt, welche die Klassen fablich repräsentieren soll. Hierzu wird die `brewer.pal` Farbpalette in die Anzahl der Klassen eingeteilt
+```{r, eval=F}
+vector_colors <- colorRampPalette(brewer.pal(vectorclasses,"Greens"))(vectorclasses)
+```
+
+### Erstellung der Legende
+Zunächst soll erklärt werden, wie die Legende Vektorobjektes mit unserem Rasterobjekt kombiniert wird. Hierzu wird der spplot-Befehl erweitert. Mit `key` wird die Legende erzeugt. Die Legende soll auf der linken Seite der Abbildung erscheinen und mit den Werten bzw. Levels beschriftet werden, die weiter oben in `vector_classes` erzeugt wurden. Anschließend wird die Darstellung der Legendensymbole festgelegt, welche die Farben aus `vector_colors` bekommen. Mit `colorkey` wird explizit festgelegt, dass die Legende des Rasterobjektes rechts der Abbildung sein soll.
+```{r, eval=F}
+spplot(raster, col.regions = gray.colors(256), at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+```
+
+### Erstellung des Vektorlayers
+Die Legende wird korrekt dargestellt. Was nun noch fehlt ist die Darstellung der Punkte in der Karte. Hierzu werden diese zunächst als eigenständiger Plot dargestellt. Die Punkte sollen natürlich genauso dargestellt werden, wie in der Legende. Dem spplot-Befehl wird daher mitgeteilt welche Werte (NAT), in welchen Farbbreichen und mit welcher Klassifizierung dargestellt werden sollen
+```{r, eval=F}
+spplot(vector, zcol = "NAT", col.regions = vector_colors, 
+                cuts = c(seq(0,max(vector@data$NAT), by=max(vector@data$NAT)/vectorclasses)))
+```
+
+## Aufruf der Funktion
+Im letzten Schritt sollen die beiden Plots kombiniert werden. Hierzu wird die `as.layer` Funktion aus `latticeExtra` benutzt. Dazu werden die beiden Plots in Variablen abgespeichert. Der Code für die gesamte Funktion mit Aufruf sieht so aus:
+```{r, echo=T}
+mapplot <- function(raster, vectororigin, vectorclasses=6, gridticks=5){
+  
+  CRS_check <- as.character(crs(vectororigin)) == as.character(crs(raster))
+  if (CRS_check == FALSE){
+    vector <- spTransform(vectororigin, CRS(projection(raster)))
+  }
+  else{
+    vector <- vectororigin
+  }
+  
+  min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
+  max <- mean(getValues(raster)) + sd(getValues(raster))
+  breaks <- seq(min, max, length.out = 256)
+  
+  yat = seq(extent(raster)@ymin, 
+            extent(raster)@ymax, length.out = gridticks)
+  xat = seq(extent(raster)@xmin, 
+            extent(raster)@xmax, length.out = gridticks)
+  
+  vector_classes <- cut(vector@data$NAT, c(seq(0,max(vector@data$NAT), by=max(vector@data$NAT)/vectorclasses)))
+  vector_colors <- colorRampPalette(brewer.pal(vectorclasses,"Greens"))(vectorclasses)
+  
+  plt <- spplot(raster, col.regions = gray.colors(256), at = breaks,
+                key = list(space = 'left', text = list(levels(vector_classes)), 
+                           points = list(pch = 21, cex = 2, fill = vector_colors)),
+                colorkey=list(space="right"),
+                panel = function(...){
+                  panel.levelplot(...)
+                  panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+                },
+                scales = list(x = list(at = xat),
+                              y = list(at = yat)))
+  
+  orl <- spplot(vector, zcol = "NAT", col.regions = vector_colors, 
+                cuts = c(seq(0,max(vector@data$NAT), by=max(vector@data$NAT)/vectorclasses)))
+  
+  plt + as.layer(orl)
+}
+
+```
+```{r, echo=T}
+#Aufrufen der Funktion
+mapplot(band3,surveydata, vectorclasses = 3, gridticks = 9)
+```
