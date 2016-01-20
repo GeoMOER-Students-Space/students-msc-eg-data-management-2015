@@ -18,7 +18,7 @@ At first, we need to set up our setup. that includes setting our workingdirector
 and activate all necessary librarys. In this case it should look like the following lines.
 
 ```{r, message=FALSE}
-setwd("C:/Users/JELENA/Documents/UNI/WiSe15-16/Datenmanagement/W10-1")
+setwd("C:/Users/JELENA/Documents/UNI/WiSe15-16/Datenmanagement/W11-1")
 library(sp)
 library(rgdal)
 library(raster)
@@ -50,6 +50,15 @@ breaks <- seq(min, max, length.out = 256)
 
 ```
 
+### Create gridlines ###
+To create gridlines you have to define yat and xat as a seqence of the hole extent of the raster. The length.out term defines the number of gridlines you wish to use. Later you can use xat and yat to integrate the grindlines in the plot via the panel.abline function and to add the scale via the scale function.
+
+```{r}
+yat = seq(extent(raster)@ymin, 
+          extent(raster)@ymax, length.out = 5)
+xat = seq(extent(raster)@xmin, 
+          extent(raster)@xmax, length.out = 5)
+```
 ### Create the plots ###
 
 After defining our variables we are now able to create a map for our raster file. Therefore we use the panel function, which enables us to overlay the grid lines on the our plot. 
