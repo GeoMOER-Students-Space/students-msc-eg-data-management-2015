@@ -1,0 +1,117 @@
+---
+title: "Visualize Spatial Data"
+author: "Max"
+date: "December 16, 2015"
+output: html_document
+---
+
+### Introduction ###
+
+This short tutorial shows how to write a function that visualizes a spatial 
+point vector attribute over a contrast stretched raster image, a discrete legend 
+for the attribute values and a continuous legend for the raster image. As an 
+example there will be a Landsat dataset from the November 23rd, 2014, Pico
+Pequeno eruption on the island of Fogo, Cape Verde.
+
+### Setup ###
+
+To begin we need to set up your working directory and load the necessary 
+libraries for the task.
+
+```{r, message=FALSE}
+# Put in your path here:
+setwd("/home/max/1.Semester/Data_Management/Projekte/Ebola/Input/Landsat/")
+
+library(sp)
+library(rgdal)
+library(raster)
+library(lattice)
+library(latticeExtra)
+
+```
+
+### Load input data ###
+
+Now we load and set our input datasets to certain variables for further 
+processing. Due to diffrent proejctions the vectordataset needs to be 
+transformed to match the raster prokection.
+
+
+```{r, results='hide'}
+raster <- raster("LC82100502014328LGN00_B3.tif")
+vector <- readOGR("data_2014_subset1.shp", layer = "data_2014_subset1")
+# Transform vector projection 
+vector_utm <- spTransform(vector, CRS(projection(raster)))
+```
+
+### Define legend variables ###
+Now we start to define our variables for our two legends. for the discrete one 
+we need to set vector classes and vector colors. To set up the continous raster 
+legend we use its minimal and maximal values as breaks. To achieve a better
+map like look we draw lines acrros the raster at certain tics (last two commands)
+
+```{r}
+vector_classes <- cut(vector_utm@data$NAT, c(0,1,2,3,4,5,6,7,8,9))
+vector_colors <- colorRampPalette(brewer.pal(9,"Greens"))(9)
+
+min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
+max <- mean(getValues(raster)) + sd(getValues(raster))
+
+breaks <- seq(min, max, length.out = 256)
+
+yat = seq(extent(raster)@ymin, 
+          extent(raster)@ymax, length.out = 5)
+xat = seq(extent(raster)@xmin, 
+          extent(raster)@xmax, length.out = 5)
+```
+
+### Visulize the data ###
+
+After defining all necessary variables we are now able to visulize our map. For 
+this we stack at first the raster and grid line layers in one plot 
+using the "panel" function.
+
+```{r}
+plt <- spplot(raster, col.regions = gray.colors(256), at = breaks,
+              key = list(space = 'left', text = list(levels(vector_classes)), 
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+```
+
+In the next step we plot the vector data using a simple plot function. Every
+class has its color as set up above.
+
+```{R}
+orl <- spplot(vector_utm, zcol = "NAT", col.regions = vector_colors, 
+              cuts = c(0,1,2,3,4,5,6,7,8,9))
+```
+
+Now we only need to combine both plots in one to visulize our final 
+map.
+
+```{R}
+finalplot <- plt + as.layer(orl)
+```
+
+Finally, we are able to plot the final result
+
+```{R, echo=FALSE}
+finalplot
+```
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
