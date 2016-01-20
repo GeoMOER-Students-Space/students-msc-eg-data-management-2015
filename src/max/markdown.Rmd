@@ -73,7 +73,7 @@ using the "panel" function.
 
 ```{r}
 plt <- spplot(raster, col.regions = gray.colors(256), at = breaks,
-              key = list(space = 'left', text = list(levels(vector_classes)), 
+              key = list(space = 'left', text = list(levels(vector_classes))
                          points = list(pch = 21, cex = 2, fill = vector_colors)),
               colorkey=list(space="right"),
               panel = function(...){
@@ -99,26 +99,16 @@ map.
 finalplot <- plt + as.layer(orl)
 ```
 
-Finally, we are able to plot the final result
+Finally, we are able to plot the final result. We set `echo = FALSE` to prevent
+showing the r code in our ducement
 
 ```{R, echo=FALSE}
 finalplot
 ```
-```{r}
-summary(cars)
-```
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 Here is the another function
 
 ```{r, echo=FALSE}
-plot(cars, col ="green")
+print("here is another function")
 ```
 
