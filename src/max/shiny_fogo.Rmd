@@ -1,0 +1,73 @@
+---
+title: "shiny_fogo"
+author: "Max"
+date: "January 27, 2016"
+output: html_document
+runtime: shiny
+---
+
+```{r, echo = FALSE}
+# Put in your path here:
+setwd("/home/max/1.Semester/Data_Management/Projekte/Ebola/Input/Landsat/")
+
+library(sp)
+library(rgdal)
+library(raster)
+library(lattice)
+library(latticeExtra)
+
+raster <- raster("LC82100502014328LGN00_B3.tif")
+vector <- readOGR("data_2014_subset1.shp", layer = "data_2014_subset1")
+# Transform vector projection 
+vector_utm <- spTransform(vector, CRS(projection(raster)))
+```
+
+### Fogo ###
+
+```{r, echo = FALSE}
+
+vector_classes <- cut(vector_utm@data$NAT, c(0,1,2,3,4,5,6,7,8,9))
+vector_colors <- colorRampPalette(brewer.pal(9,"Greens"))(9)
+
+min <- max(mean(getValues(raster)) - sd(getValues(raster)), 0)
+max <- mean(getValues(raster)) + sd(getValues(raster))
+
+breaks <- seq(min, max, length.out = 256)
+grays <- gray.colors(256)
+heat_colors <- heat.colors(256)
+violetts <- brewer.pal(6,"Purples")
+
+ inputPanel(
+  selectInput("colors", label = "Select Colormap", 
+              choices = c("Greys","Reds", "Blues" ), selected="Grays"),
+  selectInput("gridlines", label = "Number of gridlines",
+              choices = c(2,4,5,8,10,20), selected = 5),
+  selectInput("attributes", label = "Attribute",
+              choices = names(vector_utm), selected = "ID")
+)
+
+renderPlot({
+colors <- colorRampPalette(brewer.pal(256,input$colors))(256)
+nr_gridlines <- as.numeric(input$gridlines)
+yat = seq(extent(raster)@ymin, 
+          extent(raster)@ymax, length.out = nr_gridlines)
+xat = seq(extent(raster)@xmin, 
+          extent(raster)@xmax, length.out = nr_gridlines)
+plot_1 <- spplot(raster, col.regions = colors , at = breaks,
+              key = list(space = "left", text = list(levels(vector_classes)),
+                         points = list(pch = 21, cex = 2, fill = vector_colors)),
+              colorkey=list(space="right"),
+              panel = function(...){
+                panel.levelplot(...)
+                panel.abline(h = yat, v = xat, col = "grey0", lwd = 0.8, lty = 3) 
+              },
+              scales = list(x = list(at = xat),
+                            y = list(at = yat)))
+ 
+plot_2 <- spplot(vector_utm, z = input$attributes, col.regions = vector_colors)
+
+finalplot <- plot_1 + as.layer(plot_2)
+
+finalplot
+})  
+```
