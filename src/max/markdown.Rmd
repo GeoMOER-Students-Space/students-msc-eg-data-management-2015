@@ -49,7 +49,8 @@ Now we start to define our variables for our two legends. for the discrete one
 we need to set vector classes and vector colors. To set up the continous raster 
 legend we use its minimal and maximal values as breaks. To achieve a better
 map like look we draw lines acrros the raster at certain tics (last two commands)
-With "length.out" you can difine the number of grid lines
+With the variable "nr_gridlines" you can define the number of gridlines in the 
+raster
 
 ```{r}
 vector_classes <- cut(vector_utm@data$NAT, c(0,1,2,3,4,5,6,7,8,9))
@@ -60,10 +61,12 @@ max <- mean(getValues(raster)) + sd(getValues(raster))
 
 breaks <- seq(min, max, length.out = 256)
 
+nr_gridlines <- 5
+
 yat = seq(extent(raster)@ymin, 
-          extent(raster)@ymax, length.out = 10)
+          extent(raster)@ymax, length.out = nr_gridlines)
 xat = seq(extent(raster)@xmin, 
-          extent(raster)@xmax, length.out = 10)
+          extent(raster)@xmax, length.out = nr_gridlines)
 ```
 
 ### Visulize the data ###
