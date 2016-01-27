@@ -59,7 +59,7 @@ Beide Plots werden in Variablen gespeichert. Der Vektor wird mit der Funktion `a
 
 Daten zum Aufruf der Funktion
 ```{r,message=FALSE, warning=FALSE, verbose = FALSE}
-setwd("C:\\Users\\Luise\\Documents\\Universit√§t\\Data Management\\DM\\Daten\\Datensaetze")
+setwd("C:\\Users\\Luise\\Documents\\Universit‰t\\Data Management\\DM\\Daten\\Datensaetze")
 raster <- raster("LC82100502014328LGN00_B3.tif")
 vector_utm<-readOGR(".","data_2014_subset1", verbose = FALSE)
 ```
